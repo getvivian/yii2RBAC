@@ -1,4 +1,5 @@
-Yii 2 Basic Project Template 数据库文件在 db_mysql里
+Yii 2 Basic Project Template 
+数据库文件在 db_mysql里
 ============================
  
  
