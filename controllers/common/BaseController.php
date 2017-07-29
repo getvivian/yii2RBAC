@@ -34,13 +34,18 @@ class BaseController extends Controller{
          }
          return false;
      }
-     //操作日志相关的操作
-     
-     
-     
-     
-   
-     
+     //保存所有的访问记录到数据库中
+     $get_params=$this->get(null);
+     $post_params=$this->post(null);
+     $model_log= new AppAccessLog();
+     $model_log->uid=$this->current_user?$this->current_user['id']:0;
+     $model_log->target_url=isset($_SERVER['REQUEST_URI'])?$_SERVER['REQUEST_URI']:'';
+     $model_log->query_params=json_encode(array_merge($post_params,$get_params));
+     $model_log->ua=isset($_SERVER['HTTP_USER_AGENT'])?$_SERVER['HTTP_USER_AGENT']:'';
+     $model_log->ip=isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:'';
+     $model_log->created_time=date("Y-m-d H:i:s");
+     $model_log->save(0);
+
      //判断当前访问的权限是否在所拥有的权限中
        if( !$this->checkPrivilege( $action->getUniqueId() ) ){
           $this->redirect(UrlService::buildUrl("/error/forbidden"));
