@@ -10,7 +10,7 @@ use app\models\AppAccessLog;
 use yii\web\Controller;
 class BaseController extends Controller{
     //公共的控制器 主要是用来存放公共方法的
-    protected $auth_cookie_name = "imguowei_888";//超级管理员
+    protected $auth_cookie_name = "imxushuwen_888";//超级管理员
     protected $current_user=null;//当前登录人信息
     protected $allowAllAction = [
          'user/login',
@@ -23,7 +23,7 @@ class BaseController extends Controller{
         
     ];
     //当前系统需要统一登陆才能使用
-    
+    public $privilege_urls=[];
     public function beforeAction($action) {
      $login_status=$this->checkLoginStatus();   
      if(!$login_status && !in_array($action->uniqueId,$this->allowAllAction)){
@@ -34,33 +34,32 @@ class BaseController extends Controller{
          }
          return false;
      }
-     /*判断权限的依据
-      * 1 取出当前登陆用户所属的角色
-      * 2 再通过角色，取出角色所分配的权限关系
-      * 3 在权限表中取出所有的权限链接
-      * 4 判断当前访问的链接 是否在所拥有的权限表中
-      */
-      $privilege_urls=$this->getRolePrivilege();
-     //有些页面不需要验证权限就可以通过
-        if(in_array($action->getUniqueId(),$this->ignore_url)){
-            return true;
-        }
-     //是否是超级管理员,如果是超管，也不需要权限限制
-       if($this->current_user && $this->current_user['is_admin']){
-           return true;
-       } 
+     //操作日志相关的操作
+     
+     
+     
+     
+   
+     
      //判断当前访问的权限是否在所拥有的权限中
-       if( !in_array( $action->getUniqueId(),$privilege_urls) ){
+       if( !$this->checkPrivilege( $action->getUniqueId() ) ){
           $this->redirect(UrlService::buildUrl("/error/forbidden"));
           return false;
-        }
+        } 
      return true;
     }
-    //检查权限是否可访问 function checkprivile
-    
-    
-    
-    
+    //检查权限是否可访问 function checkprivile 
+    public function checkPrivilege($url){
+      //是否是超级管理员,如果是超管，也不需要权限限制
+      if($this->current_user && $this->current_user["is_admin"]){
+          return true;
+      }
+      //有一些页面不经过权限分配就可以访问到。
+      if(in_array($url,$this->ignore_url)){
+          return true;
+      }
+      return in_array( $url, $this->getRolePrivilege() );
+    }
     /* 取出某个用户所有的权限
      * 取出指定用户所属的角色
      * 再通过角色，取出角色所分配的权限关系 
@@ -71,7 +70,7 @@ class BaseController extends Controller{
       if(!$uid && $this->current_user ){
           $uid=$this->current_user->id;  
        }
-       $privilege_urls=[];
+      if(!$this->privilege_urls){
       //取出指定用户所属的角色的role_id
       $role_ids=UserRole::find()->where(['uid'=>$uid])->select('role_id')->asArray()->column();
       if($role_ids){
@@ -83,13 +82,14 @@ class BaseController extends Controller{
              foreach($list as $_item){
                $tmp_urls=@json_decode($_item['urls'],true);
                //将item中的urls转换成数组形式
-               $privilege_urls=array_merge($tmp_urls,$privilege_urls);
+               $this->privilege_urls=array_merge($this->privilege_urls,$tmp_urls);
                //合并成一个数组 
-            }
-         } 
-      }
-       return $privilege_urls;
-    }
+              }
+           } 
+        }
+     }
+        return $this->privilege_urls;
+  }
     
     //验证登陆是否有效 返回true或者false  
     protected function checkLoginStatus(){
